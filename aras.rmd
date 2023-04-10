@@ -1,0 +1,37 @@
+---
+title: "Aras"
+author: "Alireza"
+date: "10/04/2023"
+output: github_document
+---
+
+```{r message=FALSE, warning=FALSE}
+library(devtools)
+library(ggradar)
+library(stringr)
+library(readxl)
+library(tidyverse)
+library(fmsb)
+library(plotly)
+library(hrbrthemes)
+library(patchwork)
+library(png)
+
+
+## ---- Barplots for "per hectare" ####
+per_hectare <- read_excel("Indicators.xlsx", sheet = "r_perhectare")
+per_hectare <- data.frame(per_hectare)
+per_hectare$value <- round(per_hectare$value, 0)
+
+ggplot(per_hectare, aes(x=Varibles, y =value, fill= Varibles))+
+  geom_bar( stat = "identity" )+
+  facet_wrap(~ crop)+
+  scale_fill_manual( values = c("#118c4f", "#d8b30d", "#ff3b3b", "#5e5e5e",
+                                "#2727ff"))+
+  theme_bw()+
+  theme(axis.text.x = element_text( angle = 90,  hjust = 1 ))+
+  ylab("Percentage")+
+  xlab ("")
+
+```
+

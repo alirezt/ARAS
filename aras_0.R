@@ -1,0 +1,159 @@
+# ---- Spider Diagram for Aras Crop Varibles "per ton"  ####
+install.packages("tidyverse")
+install.packages("png")
+install.packages("devtools")
+devtools::install_github("ricardo-bion/ggradar")
+library(devtools)
+library(ggradar)
+library(stringr)
+library(readxl)
+library(tidyverse)
+library(fmsb)
+library(plotly)
+library(hrbrthemes)
+library(patchwork)
+library(png)
+
+
+## ---- Barplots for "per hectare" ####
+per_hectare <- read_excel("Indicators.xlsx", sheet = "r_perhectare")
+per_hectare <- data.frame(per_hectare)
+per_hectare$value <- round(per_hectare$value, 0)
+
+ggplot(per_hectare, aes(x=Varibles, y =value, fill= Varibles))+
+  geom_bar( stat = "identity" )+
+  facet_wrap(~ crop)+
+  scale_fill_manual( values = c("#118c4f", "#d8b30d", "#ff3b3b", "#5e5e5e",
+                                "#2727ff"))+
+  theme_bw()+
+  theme(axis.text.x = element_text( angle = 90,  hjust = 1 ))+
+  ylab("Percentage")+
+  xlab ("")
+  
+#ggsave("Per_hectare.tiff", width = 10, height = 8)
+  
+## ---- AG time history  ####
+iranag_cbi <- read_excel("iranag_cbi.xlsx", sheet = "r")
+iranag_cbi <- data.frame(iranag_cbi)
+
+
+testcpi1 <- iranag_cbi %>% 
+  ggplot( aes(x=year, y=Wheat_tht)) +
+  geom_area(fill="#69b3a2", alpha=0.5) +
+  geom_line(color="#69b3a2") +
+  ylab("Wheat Production (Thousand tons)") +
+  theme_ipsum()
+
+testcpi2 <- ggplot(iranag_cbi, aes(x=year, y=totprod)) +
+  geom_line(color="#69b3a2", size=2) +
+  theme_bw()+
+  theme(axis.text.x = element_text( angle = 90,  hjust = 1 ),
+        plot.title = element_text(face = "bold", size = 12),
+        legend.background = element_rect(fill = "white", size = 4, colour = "white"))+
+  labs(
+    x = "Year",
+    y = "Thousand Tons",
+    title = "Annual Crop Production"
+  )
+
+testcpi3 <- ggplot(iranag_cbi, aes(x=year, y=totland_thh)) +
+  geom_line(color="#69b3a2", size=2) +
+  theme_bw()+
+  theme(axis.text.x = element_text( angle = 90,  hjust = 1 ),
+        plot.title = element_text(face = "bold", size = 12),
+        legend.background = element_rect(fill = "white", size = 4, colour = "white"))+
+  labs(
+    x = "Year",
+    y = "Thousand Hectares",
+    title = "Land Use"
+  )
+
+
+sapply(iranag_cbi, class)
+sapply(iranag_cbi, mode)
+sapply(iranag_cbi, is.character)
+transform(iranag_cbi, Agri_Imports_tht = as.numeric(Agri_Imports_tht))
+iranag_cbi[ , ] <- as.data.frame(apply(iranag_cbi[ , ], 2, as.numeric))
+
+testcpi4 <- ggplot(iranag_cbi, aes(x=year, y=Agri_Imports_tht)) +
+  geom_line(color="#69b3a2", size=2) +
+  theme_bw()+
+  theme(axis.text.x = element_text( angle = 90,  hjust = 1 ),
+        plot.title = element_text(face = "bold", size = 12),
+        legend.background = element_rect(fill = "white", size = 4, colour = "white"))+
+  labs(
+    x = "Year",
+    y = "Thousand Tons",
+    title = "Annual Crop Imports"
+  )
+testcpi4 + testcpi2 + testcpi3
+#ggsave("Agricultural_Trend_3Fig.tiff", width = 12, height = 4)
+
+# Value used to transform the data
+coeff <- 0.6
+totalproductioncolor <- "#69b3a2"
+importcolor <- rgb(0.2, 0.6, 0.9, 1)
+
+ggplot(iranag_cbi, aes(x=year)) +
+  geom_line( aes(y=totprod), size=2, color=totalproductioncolor) + 
+  geom_line( aes(y=Agri_Imports_tht / coeff), size=2, color=importcolor) +
+  scale_y_continuous(
+    # Features of the first axis
+    name = "Total Crop Yield",
+    # Add a second axis and specify its features
+    sec.axis = sec_axis(~.*coeff, name="Total Agricultural Imports")
+  ) + 
+  theme_ipsum() +
+  
+  theme(
+    axis.title.y = element_text(color = totalproductioncolor, size=13),
+    axis.title.y.right = element_text(color = importcolor, size=13)
+  ) +
+  ggtitle("Agricultural Trend in Iran (in Thousand tons)")
+
+#ggsave("Agricultural_Trend_2axis.tiff", width = 10, height = 8)
+
+# ---- For every crop ####
+iranagcrop_cbi <- read_excel("iranag_cbi.xlsx", sheet = "r_cprod")
+iranagcrop_cbi <- data.frame(iranagcrop_cbi)
+sapply(iranagcrop_cbi, is.character)
+iranagcrop_cbi[ ,3] <- as.numeric(iranagcrop_cbi[ ,3])
+
+
+iranagcrop_cbi %>%
+  filter(prod %in% c("SugarBeet","Wheat","SugarCane","Potato",
+                     "Onion","Barely")) %>%
+  ggplot(aes(x=year, y =ppc_kg, fill= prod))+
+  geom_bar( stat = "identity" )+
+  facet_wrap(~ prod, labeller = labeller("Barely_tht" = "Barley"))+
+  theme_bw()+
+  theme(axis.text.x = element_text( angle = 90,  hjust = 1 ),
+        plot.title = element_text(face = "bold", size = 14),
+        legend.background = element_rect(fill = "white", size = 4, colour = "white"))+
+  labs(
+    x = "Year",
+    y = "Kg",
+    fill = "Crop Types",
+    title = "Annual Crop Yield Per Capita (in Kg)"
+  )
+#ggsave("CropsPerCapit.tiff", width = 10, height = 8)
+
+iranagcrop_cbi %>%
+  filter(prod %in% c("SugarBeet","Wheat","SugarCane","Potato",
+                     "Onion","Barely")) %>%
+  ggplot(aes(x=year, y =p_tht, fill= prod))+
+  geom_bar( stat = "identity" )+
+  facet_wrap(~ prod, labeller = labeller("Barely_tht" = "Barley"))+
+  scale_colour_brewer(type = "seq", palette = "Spectral")+
+  theme_bw()+
+  theme(axis.text.x = element_text( angle = 90,  hjust = 1 ),
+        plot.title = element_text(face = "bold", size = 14),
+        legend.background = element_rect(fill = "white", size = 4, colour = "white"))+
+  labs(
+    x = "Year",
+    y = "Thousand Tons",
+    fill = "Crop Types",
+    title = "Annual Crop Yield"
+  )
+#ggsave("CropsYields.tiff", width = 10, height = 8)
+
